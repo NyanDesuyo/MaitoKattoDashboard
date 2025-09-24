@@ -9,33 +9,30 @@
       <input v-model="search.account" placeholder="Search Account" class="border p-2" />
       <input v-model="search.type" placeholder="Search Type" class="border p-2" />
     </div>
-    <div class="mb-4">
-      <button @click="editCashflow" :disabled="!selectedCashflow" class="bg-blue-500 text-white py-2 px-4 rounded mr-2 disabled:opacity-50">Edit</button>
-      <button @click="confirmDelete" :disabled="!selectedCashflow" class="bg-red-500 text-white py-2 px-4 rounded disabled:opacity-50">Delete</button>
-    </div>
     <table class="min-w-full bg-white border border-gray-200">
       <thead>
         <tr>
-          <th class="py-2 px-4 border-b"></th>
           <th class="py-2 px-4 border-b">ID</th>
           <th class="py-2 px-4 border-b">User ID</th>
           <th class="py-2 px-4 border-b">Name</th>
           <th class="py-2 px-4 border-b">Amount</th>
           <th class="py-2 px-4 border-b">Account</th>
           <th class="py-2 px-4 border-b">Type</th>
+          <th class="py-2 px-4 border-b">Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="cashflow in cashflows.data" :key="cashflow.id">
-          <td class="py-2 px-4 border-b">
-            <input type="radio" :value="cashflow" v-model="selectedCashflow" :name="`cashflow-select`" />
-          </td>
           <td class="py-2 px-4 border-b">{{ cashflow.id }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.userId }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.name }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.amount }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.account }}</td>
           <td class="py-2 px-4 border-b">{{ mapCashflowType(cashflow.type) }}</td>
+          <td class="py-2 px-4 border-b">
+            <button @click="openEditModal(cashflow)" class="bg-blue-500 text-white py-1 px-2 rounded mr-2">Edit</button>
+            <button @click="confirmDelete(cashflow)" class="bg-red-500 text-white py-1 px-2 rounded">Delete</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -45,13 +42,14 @@
       <button @click="currentPage++" :disabled="currentPage === totalPages" class="bg-gray-300 text-gray-700 py-2 px-4 rounded disabled:opacity-50">Next</button>
     </div>
     <DeleteConfirmationModal :show="showDeleteModal" @confirm="handleDelete" @cancel="showDeleteModal = false" />
+    <EditCashflowModal :show="showEditModal" :cashflow="editingCashflow" @save="handleUpdate" @cancel="showEditModal = false" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import DeleteConfirmationModal from '~/components/DeleteConfirmationModal.vue'
+import EditCashflowModal from '~/components/EditCashflowModal.vue'
 
 const search = ref({
   id: '',
@@ -85,8 +83,10 @@ const { data: cashflows, refresh } = await useFetch('/api/cashflows', {
   watch: [searchParams, currentPage]
 })
 
-const selectedCashflow = ref(null)
 const showDeleteModal = ref(false)
+const showEditModal = ref(false)
+const selectedCashflow = ref(null)
+const editingCashflow = ref(null)
 
 const mapCashflowType = (type) => {
   return Number(type) === 0 ? 'Expense' : 'Income'
@@ -97,18 +97,23 @@ const totalPages = computed(() => {
   return Math.ceil(cashflows.value.total / pageSize)
 })
 
-const router = useRouter()
-
-const editCashflow = () => {
-  if (selectedCashflow.value) {
-    router.push(`/cashflows/${selectedCashflow.value.id}`)
-  }
+const openEditModal = (cashflow) => {
+  editingCashflow.value = { ...cashflow }
+  showEditModal.value = true
 }
 
-const confirmDelete = () => {
-  if (selectedCashflow.value) {
-    showDeleteModal.value = true
-  }
+const handleUpdate = async (updatedCashflow) => {
+  await $fetch(`/api/cashflows/${updatedCashflow.id}`, {
+    method: 'PUT',
+    body: updatedCashflow
+  })
+  showEditModal.value = false
+  refresh()
+}
+
+const confirmDelete = (cashflow) => {
+  selectedCashflow.value = cashflow
+  showDeleteModal.value = true
 }
 
 const handleDelete = async () => {
@@ -121,5 +126,4 @@ const handleDelete = async () => {
     refresh()
   }
 }
-
 </script>
