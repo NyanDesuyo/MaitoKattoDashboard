@@ -1,13 +1,16 @@
 <template>
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Cashflows</h1>
-    <div class="grid grid-cols-6 gap-4 mb-4">
-      <input v-model="search.id" placeholder="Search ID" class="border p-2" />
-      <input v-model="search.userId" placeholder="Search User ID" class="border p-2" />
-      <input v-model="search.name" placeholder="Search Name" class="border p-2" />
-      <input v-model="search.amount" placeholder="Search Amount" class="border p-2" />
-      <input v-model="search.account" placeholder="Search Account" class="border p-2" />
-      <input v-model="search.type" placeholder="Search Type" class="border p-2" />
+    <div class="flex items-center mb-4">
+      <input v-model="searchTerm" placeholder="Search..." class="border p-2 rounded-l-md w-full" />
+      <select v-model="searchField" class="border p-2 border-l-0">
+        <option value="name">Name</option>
+        <option value="id">ID</option>
+        <option value="userId">User ID</option>
+        <option value="amount">Amount</option>
+        <option value="account">Account</option>
+        <option value="type">Type (0 for Expense, 1 for Income)</option>
+      </select>
     </div>
     <table class="min-w-full bg-white border border-gray-200">
       <thead>
@@ -26,7 +29,7 @@
           <td class="py-2 px-4 border-b">{{ cashflow.id }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.userId }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.name }}</td>
-          <td class="py-2 px-4 border-b">{{ cashflow.amount }}</td>
+          <td class="py-2 px-4 border-b">{{ formatCurrency(cashflow.amount) }}</td>
           <td class="py-2 px-4 border-b">{{ cashflow.account }}</td>
           <td class="py-2 px-4 border-b">{{ mapCashflowType(cashflow.type) }}</td>
           <td class="py-2 px-4 border-b">
@@ -50,27 +53,19 @@
 import { ref, computed, watch } from 'vue'
 import DeleteConfirmationModal from '~/components/DeleteConfirmationModal.vue'
 import EditCashflowModal from '~/components/EditCashflowModal.vue'
+import { formatCurrency } from '~/utils/formatters'
 
-const search = ref({
-  id: '',
-  userId: '',
-  name: '',
-  amount: '',
-  account: '',
-  type: ''
-})
+const searchTerm = ref('')
+const searchField = ref('name')
 
 const currentPage = ref(1)
 const pageSize = 10
 
 const searchParams = computed(() => {
-  const params = { ...search.value }
-  if (params.id === '') params.id = undefined
-  if (params.userId === '') params.userId = undefined
-  if (params.name === '') params.name = undefined
-  if (params.amount === '') params.amount = undefined
-  if (params.account === '') params.account = undefined
-  if (params.type === '') params.type = undefined
+  const params = {}
+  if (searchTerm.value && searchTerm.value.trim() !== '') {
+    params[searchField.value] = searchTerm.value.trim()
+  }
   return params
 })
 
