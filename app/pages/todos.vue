@@ -51,8 +51,11 @@ const searchField = ref('text')
 const currentPage = ref(1)
 const pageSize = 10
 
-const searchParams = computed(() => {
-  const params = {}
+const queryParams = computed(() => {
+  const params = {
+    page: currentPage.value,
+    pageSize: pageSize,
+  }
   if (searchTerm.value && searchTerm.value.trim() !== '') {
     params[searchField.value] = searchTerm.value.trim()
   }
@@ -60,12 +63,8 @@ const searchParams = computed(() => {
 })
 
 const { data: todos, refresh } = await useFetch('/api/todos', {
-  query: {
-    ...searchParams.value,
-    page: currentPage.value,
-    pageSize: pageSize
-  },
-  watch: [searchParams, currentPage]
+  query: queryParams,
+  watch: [queryParams],
 })
 
 const showDeleteModal = ref(false)
